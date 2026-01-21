@@ -1,607 +1,48 @@
 <!doctype html>
-<html lang="id">
+<html lang="id" class="scroll-smooth">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Dashboard Publik – Pendampingan Pengelolaan Sampah</title>
 
-  <link rel="preconnect" href="https://unpkg.com">
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""
-  ></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    :root{
-      --bg: #0b1220;
-      --card: rgba(17,24,39,.92);
-      --muted: rgba(255,255,255,.75);
-      --line: rgba(255,255,255,.12);
-      --accent: #22c55e;
-      --accent2: #93c5fd;
-      --text: #ffffff;
-      --danger: #ef4444;
-    }
-    *{ box-sizing: border-box; }
-    body{
-      margin:0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(180deg, #0b1220 0%, #070b14 100%);
-      color: var(--text);
-    }
-    a{ color: inherit; text-decoration: none; }
-    a:hover{ text-decoration: underline; }
+    body { font-family: 'Inter', sans-serif; }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
-    .topbar{
-      position: sticky;
-      top: 0;
-      z-index: 999;
-      backdrop-filter: blur(10px);
-      background: rgba(11,18,32,.82);
-      border-bottom: 1px solid var(--line);
+    /* Leaflet Popup Dark Mode Override */
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+      background: rgba(15, 23, 42, 0.95); /* Slate 900 */
+      color: #fff;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.1);
     }
-    .topbar-inner{
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 12px 16px;
-      display:flex;
-      gap: 14px;
-      align-items:center;
-      justify-content: space-between;
-    }
-    .brand{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      min-width: 220px;
-    }
-    .logo{
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-      background: rgba(34,197,94,.2);
-      border: 1px solid rgba(34,197,94,.35);
-      display:grid;
-      place-items:center;
-      font-weight: 900;
-      color: var(--accent);
-    }
-    .brand-title{ line-height: 1.1; }
-    .brand-title b{ display:block; font-size: 13px; }
-    .brand-title span{ font-size: 11px; color: var(--muted); }
+    .leaflet-popup-content { margin: 12px; font-size: 13px; line-height: 1.5; }
+    .leaflet-container a.leaflet-popup-close-button { color: #fff; }
+    
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
-    .nav{
-      display:flex;
-      gap: 12px;
-      align-items:center;
-      flex-wrap: wrap;
-      justify-content: flex-end;
+    /* Animasi Scroll Reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
     }
-    .nav a{
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid transparent;
-      color: rgba(255,255,255,.9);
-      font-size: 13px;
-    }
-    .nav a:hover{
-      border-color: var(--line);
-      background: rgba(255,255,255,.04);
-      text-decoration: none;
-    }
-    .btn-admin{
-      background: rgba(147,197,253,.12);
-      border: 1px solid rgba(147,197,253,.28) !important;
-      color: var(--accent2);
-      font-weight: 700;
-    }
-
-    .nav form { margin: 0; }
-    .nav form button{
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid rgba(239,68,68,.35);
-      background: rgba(239,68,68,.12);
-      color: #fecaca;
-      font-size: 13px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-    .nav form button:hover{ background: rgba(239,68,68,.18); }
-
-    .container{
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 22px 16px 46px;
-    }
-
-    .hero{
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 18px;
-      background: radial-gradient(1200px 480px at 20% 0%, rgba(34,197,94,.18), rgba(17,24,39,.92) 55%);
-      box-shadow: 0 12px 40px rgba(0,0,0,.25);
-    }
-    .hero-grid{
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap: 16px;
-      align-items: center;
-    }
-    @media (max-width: 860px){ .hero-grid{ grid-template-columns: 1fr; } }
-    .hero h1{ margin: 0 0 8px; font-size: 24px; letter-spacing: .2px; }
-    .hero p{ margin: 0 0 14px; color: var(--muted); line-height: 1.5; font-size: 14px; }
-    .badges{ display:flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-    .badge{
-      font-size: 12px;
-      color: rgba(255,255,255,.9);
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      padding: 6px 10px;
-      border-radius: 999px;
-    }
-    .cta-row{ display:flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-    .btn{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.06);
-      font-size: 13px;
-      font-weight: 800;
-      cursor: pointer;
-      color: white;
-    }
-    .btn:hover{ background: rgba(255,255,255,.10); }
-    .btn-primary{
-      background: rgba(34,197,94,.16);
-      border-color: rgba(34,197,94,.35);
-      color: var(--accent);
-    }
-
-    .hero-card{
-      border-radius: 16px;
-      border: 1px solid var(--line);
-      background: rgba(0,0,0,.18);
-      padding: 14px;
-    }
-    .hero-card h3{ margin: 0 0 8px; font-size: 14px; }
-    .hero-card ul{ margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.55; }
-
-    .section{
-      margin-top: 18px;
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      background: var(--card);
-      padding: 16px;
-      box-shadow: 0 12px 40px rgba(0,0,0,.22);
-    }
-    .section-header{
-      display:flex;
-      align-items:flex-end;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-    .section-header h2{ margin: 0; font-size: 16px; }
-    .section-header .sub{ color: var(--muted); font-size: 12px; line-height: 1.4; }
-
-    .stats{
-      display:grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-    }
-    @media (max-width: 860px){ .stats{ grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 480px){ .stats{ grid-template-columns: 1fr; } }
-    .stat{
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px;
-      background: rgba(255,255,255,.04);
-    }
-    .stat .label{ font-size: 12px; color: var(--muted); margin-bottom: 8px; }
-    .stat .value{ font-size: 22px; font-weight: 900; letter-spacing: .3px; }
-    .stat .hint{ margin-top: 8px; font-size: 11px; color: rgba(255,255,255,.65); }
-
-    .map-wrap{
-      display:grid;
-      grid-template-columns: 340px 1fr;
-      gap: 10px;
-    }
-    @media (max-width: 980px){ .map-wrap{ grid-template-columns: 1fr; } }
-    .panel{
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      border-radius: 14px;
-      padding: 12px;
-    }
-    .panel h3{ margin: 0 0 8px; font-size: 14px; }
-    .panel .muted{ color: var(--muted); font-size: 12px; }
-    .controls{ display:flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-    .chip{
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      color: rgba(255,255,255,.9);
-      padding: 7px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      cursor: pointer;
-      user-select: none;
-    }
-    .chip.active{
-      border-color: rgba(34,197,94,.35);
-      background: rgba(34,197,94,.12);
-      color: var(--accent);
-      font-weight: 800;
-    }
-    .search{
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      outline: none;
-      background: rgba(0,0,0,.18);
-      color: white;
-      margin-bottom: 10px;
-    }
-    .list{
-      display:flex;
-      flex-direction: column;
-      gap: 8px;
-      max-height: 420px;
-      overflow:auto;
-      padding-right: 4px;
-    }
-    .item{
-      border: 1px solid var(--line);
-      background: rgba(0,0,0,.16);
-      border-radius: 12px;
-      padding: 10px;
-      cursor: pointer;
-    }
-    .item:hover{ background: rgba(0,0,0,.22); }
-    .item b{ font-size: 13px; }
-    .item .meta{
-      margin-top: 4px;
-      font-size: 11px;
-      color: rgba(255,255,255,.72);
-      line-height: 1.35;
-    }
-    #map{
-      height: 520px;
-      border-radius: 14px;
-      border: 1px solid var(--line);
-      overflow: hidden;
-    }
-
-    .cards{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-    @media (max-width: 860px){ .cards{ grid-template-columns: 1fr; } }
-    .card{
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      border-radius: 14px;
-      padding: 12px;
-    }
-    .card h3{ margin: 0 0 6px; font-size: 14px; }
-    .card p{ margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
-
-    .gallery{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-    @media (max-width: 860px){ .gallery{ grid-template-columns: 1fr; } }
-    .photo{
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      border-radius: 14px;
-      overflow:hidden;
-    }
-    .photo .thumb{
-      height: 150px;
-      background: linear-gradient(135deg, rgba(34,197,94,.16), rgba(147,197,253,.10));
-      border-bottom: 1px solid var(--line);
-      display:grid;
-      place-items:center;
-      color: rgba(255,255,255,.85);
-      font-weight: 900;
-      letter-spacing: .8px;
-      overflow:hidden;
-    }
-    .photo .thumb img{
-      width:100%;
-      height:150px;
-      object-fit: cover;
-      display:block;
-    }
-    .photo .cap{ padding: 10px 12px; }
-    .photo .cap b{ font-size: 13px; }
-    .photo .cap div{
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.4;
-    }
-
-    details{
-      border: 1px solid var(--line);
-      background: rgba(0,0,0,.16);
-      border-radius: 14px;
-      padding: 10px 12px;
-      margin-bottom: 10px;
-    }
-    summary{ cursor: pointer; font-weight: 800; font-size: 13px; }
-    details p{ margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
-
-    .footer{
-      margin-top: 18px;
-      padding: 14px 16px;
-      border-top: 1px solid var(--line);
-      color: rgba(255,255,255,.75);
-      font-size: 12px;
-      line-height: 1.6;
-      text-align:center;
-    }
-    .kecil{ font-size: 11px; color: rgba(255,255,255,.65); }
-
-    .gmaps-btn{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      margin-top:10px;
-      padding:7px 10px;
-      border-radius:10px;
-      border:1px solid rgba(0,0,0,.15);
-      text-decoration:none;
-      color:#111827;
-      background:#ffffff;
-      font-size:12px;
-      font-weight:800;
-      line-height:1;
-    }
-    .gmaps-btn:hover{ background:#f3f4f6; text-decoration:none; }
-
-    .admin-edit{
-      border: 1px solid rgba(147,197,253,.28);
-      background: rgba(147,197,253,.08);
-      border-radius: 18px;
-      padding: 14px;
-      margin-bottom: 18px;
-    }
-    .admin-edit h3{
-      margin:0 0 8px;
-      font-size: 14px;
-      color: var(--accent2);
-      display:flex;
-      align-items:center;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .admin-edit .hint{
-      color: rgba(255,255,255,.75);
-      font-size: 12px;
-      margin-bottom: 10px;
-      line-height: 1.45;
-    }
-    .admin-edit .grid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    @media (max-width: 860px){ .admin-edit .grid{ grid-template-columns: 1fr; } }
-    .admin-edit label{
-      display:block;
-      font-size: 12px;
-      color: rgba(255,255,255,.85);
-      margin-bottom: 6px;
-      font-weight: 800;
-    }
-    .admin-edit input[type="text"],
-    .admin-edit textarea{
-      width:100%;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.18);
-      outline:none;
-      background: rgba(0,0,0,.18);
-      color:#fff;
-      font-size: 13px;
-    }
-    .admin-edit textarea{ min-height: 92px; resize: vertical; }
-    .admin-edit .row{
-      display:flex;
-      gap:10px;
-      flex-wrap: wrap;
-      align-items:center;
-      justify-content: flex-end;
-      margin-top: 12px;
-    }
-    .admin-edit .btn-save{
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(34,197,94,.35);
-      background: rgba(34,197,94,.16);
-      color: var(--accent);
-      font-weight: 900;
-      cursor: pointer;
-    }
-    .admin-edit .btn-save:hover{ background: rgba(34,197,94,.22); }
-
-    .flash-ok{
-      border: 1px solid rgba(34,197,94,.35);
-      background: rgba(34,197,94,.10);
-      color: rgba(255,255,255,.92);
-      padding: 10px 12px;
-      border-radius: 14px;
-      margin-bottom: 12px;
-      font-size: 13px;
-    }
-
-    .btn-toggle{
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid rgba(147,197,253,.28);
-      background: rgba(147,197,253,.12);
-      color: rgba(255,255,255,.92);
-      font-weight: 900;
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .btn-toggle:hover{ background: rgba(147,197,253,.16); }
-
-    /* ✅ Preview box */
-    .preview-box{
-      margin-top:8px;
-      border: 1px solid rgba(255,255,255,.14);
-      border-radius: 12px;
-      overflow:hidden;
-      background: rgba(0,0,0,.18);
-      height: 120px;
-      display:none;
-    }
-    .preview-box img{
-      width:100%;
-      height:120px;
-      object-fit: cover;
-      display:block;
-    }
-
-    /* ✅ tombol merah + undo */
-    .photo-action-row{
-      margin-top:8px;
-      display:flex;
-      gap:8px;
-      flex-wrap: wrap;
-      align-items:center;
-    }
-    .btn-remove-photo{
-      padding:7px 10px;
-      border-radius:10px;
-      border:1px solid rgba(239,68,68,.45);
-      background: rgba(239,68,68,.18);
-      color:#fecaca;
-      font-size:12px;
-      font-weight:900;
-      cursor:pointer;
-    }
-    .btn-remove-photo:hover{ background: rgba(239,68,68,.28); }
-
-    .btn-undo-photo{
-      padding:7px 10px;
-      border-radius:10px;
-      border:1px solid rgba(147,197,253,.35);
-      background: rgba(147,197,253,.14);
-      color: rgba(255,255,255,.92);
-      font-size:12px;
-      font-weight:900;
-      cursor:pointer;
-      display:none;
-    }
-    .btn-undo-photo:hover{ background: rgba(147,197,253,.18); }
-
-    .small-note{
-      margin-top:6px;
-      font-size:11px;
-      color: rgba(255,255,255,.72);
-      line-height:1.35;
-    }
-
-    /* =========================
-       ✅ QR CODE + SHARE (CENTER + BIG)
-       ========================= */
-    .qr-wrap{
-      display:flex;
-      justify-content:center;
-    }
-
-    .qr-box{
-      width:100%;
-      max-width:520px;
-      border: 1px solid var(--line);
-      background: rgba(0,0,0,.16);
-      border-radius: 18px;
-      padding: 18px;
-      display:flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .qr-canvas{
-      width: 320px;
-      height: 320px;
-      border-radius: 16px;
-      background: #fff;
-      display:grid;
-      place-items:center;
-      overflow:hidden;
-    }
-    .qr-canvas canvas{
-      width: 320px;
-      height: 320px;
-      display:block;
-    }
-    @media (max-width: 420px){
-      .qr-canvas{ width: 260px; height: 260px; }
-      .qr-canvas canvas{ width: 260px; height: 260px; }
-    }
-
-    .qr-actions{
-      display:flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      width: 100%;
-      justify-content: center;
-    }
-    .btn-qr{
-      padding: 10px 14px;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.06);
-      color: white;
-      font-size: 13px;
-      font-weight: 900;
-      cursor:pointer;
-    }
-    .btn-qr:hover{ background: rgba(255,255,255,.10); }
-    .btn-qr.primary{
-      background: rgba(34,197,94,.16);
-      border-color: rgba(34,197,94,.35);
-      color: var(--accent);
-    }
-    .qr-note{
-      font-size: 12px;
-      color: rgba(255,255,255,.72);
-      line-height: 1.45;
-      text-align: center;
-      max-width: 420px;
-    }
-    .qr-toast{
-      margin-top: 8px;
-      display:none;
-      border: 1px solid rgba(34,197,94,.35);
-      background: rgba(34,197,94,.10);
-      color: rgba(255,255,255,.92);
-      padding: 10px 12px;
-      border-radius: 14px;
-      font-size: 12px;
-      font-weight: 800;
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0);
     }
   </style>
 </head>
@@ -613,47 +54,107 @@
   $dok       = is_array($content->dokumentasi_cards ?? null) ? $content->dokumentasi_cards : [];
   $tentang   = $content->tentang_desc ?? '';
   $kontak    = $content->kontak ?? '';
-
-  $publicBase = rtrim(env('APP_PUBLIC_URL', config('app.url')), '/');
-  $shareUrl = $publicBase . '/';
+  $shareUrl  = url()->current();
 @endphp
 
-<body>
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <div class="logo">PS</div>
-        <div class="brand-title">
-          <b>Pendampingan Sampah</b>
-          <span>Dashboard Publik • Edukasi • Peta Titik Proker</span>
-        </div>
-      </div>
+<body class="bg-slate-950 text-slate-200 antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
 
-      <div class="nav">
-        <a href="#peta">Peta</a>
-        <a href="#edukasi">Edukasi</a>
-        <a href="#dokumentasi">Dokumentasi</a>
-        <a href="#tentang">Tentang</a>
-
-        @if(auth()->check() && auth()->user()->is_admin)
-          <a class="btn-admin" href="/admin/map">Buka Admin Map</a>
-          <form method="POST" action="/admin/logout">
-            @csrf
-            <button type="submit">Logout Admin</button>
-          </form>
-        @else
-          <a class="btn-admin" href="/admin/login">Login Admin</a>
-        @endif
-      </div>
-    </div>
+  <div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+    <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[100px]"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]"></div>
   </div>
 
-  <div class="container">
+  <nav class="sticky top-0 z-50 border-b border-white/5 bg-slate-950/80 backdrop-blur-md transition-all duration-300" id="navbar">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <a href="#" class="flex items-center gap-3 group">
+          <div class="w-10 h-10 rounded-2xl
+                      bg-gradient-to-br from-emerald-400 to-teal-600
+                      flex items-center justify-center text-white
+                      shadow-lg shadow-emerald-500/25
+                      transition-all duration-300
+                      hover:scale-110 hover:rotate-12">
+            
+            <svg xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="w-5 h-5">
+                
+              <path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.36 2.64"/>
+              <path d="M21 3v6h-6"/>
+              <path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.36-2.64"/>
+              <path d="M3 21v-6h6"/>
+            </svg>
+          </div>
+
+          <div class="hidden sm:block leading-tight">
+            <div class="font-bold text-white text-sm tracking-wide">Pendampingan Sampah</div>
+            <div class="text-[10px] text-slate-400 font-medium uppercase tracking-wider group-hover:text-emerald-400 transition-colors">Desa Wiroditan</div>
+          </div>
+        </a>
+
+        <div class="flex items-center gap-1 sm:gap-2">
+          
+          <div class="hidden md:flex gap-1 items-center">
+            <a href="#peta" class="px-3 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors">Peta</a>
+            
+            <div class="relative group">
+              <button class="px-3 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex items-center gap-1">
+                Informasi
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 opacity-50 group-hover:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+              </button>
+              
+              <div class="absolute top-full right-0 mt-1 w-40 bg-slate-900 border border-white/10 rounded-xl shadow-xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 transition-all duration-200 origin-top-right">
+                <a href="#edukasi" class="block px-4 py-3 text-xs text-slate-300 hover:bg-white/5 hover:text-white border-b border-white/5">
+                  📚 Edukasi
+                </a>
+                <a href="#dokumentasi" class="block px-4 py-3 text-xs text-slate-300 hover:bg-white/5 hover:text-white">
+                  📸 Dokumentasi
+                </a>
+              </div>
+            </div>
+
+            <a href="#faq" class="px-3 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors">FAQ</a>
+          </div>
+
+          <div class="h-5 w-px bg-white/10 mx-2 hidden md:block"></div>
+
+          @if(auth()->check() && auth()->user()->is_admin)
+            <a href="/admin/map" class="px-3 py-2 text-xs font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-all flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
+              Admin Map
+            </a>
+            <form method="POST" action="/admin/logout">
+              @csrf
+              <button type="submit" class="px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors">
+                Logout
+              </button>
+            </form>
+          @else
+            <a href="/admin/login" class="px-3 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
+              Login Admin
+            </a>
+          @endif
+        </div>
+
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
 
     @if ($errors->any())
-      <div class="flash-ok" style="border-color: rgba(239,68,68,.45); background: rgba(239,68,68,.10);">
-        <b>Gagal simpan:</b>
-        <ul style="margin:8px 0 0; padding-left:18px;">
+      <div class="reveal active rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
+        <div class="flex items-center gap-2 font-bold text-red-400 mb-2">
+          Gagal Menyimpan
+        </div>
+        <ul class="list-disc list-inside space-y-1 opacity-90">
           @foreach ($errors->all() as $error)
             <li>{{ $error }}</li>
           @endforeach
@@ -662,764 +163,654 @@
     @endif
 
     @if (session('success'))
-      <div class="flash-ok">{{ session('success') }}</div>
+      <div class="reveal active rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-200 flex items-center gap-2">
+        {{ session('success') }}
+      </div>
     @endif
 
     @if(auth()->check() && auth()->user()->is_admin)
-      <div style="margin-bottom:10px; display:flex; justify-content:flex-end;">
-        <button class="btn-toggle" id="toggleEditBtn" type="button">Mode Edit: OFF</button>
+      <div class="flex justify-end reveal">
+        <button id="toggleEditBtn" type="button" class="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs font-bold uppercase tracking-wider rounded-lg border border-indigo-500/20 transition-all flex items-center gap-2">
+          Mode Edit: OFF
+        </button>
       </div>
 
-      <div class="admin-edit" id="adminEditPanel" style="display:none;">
-        <h3>
-          <span>✏️ Mode Edit Dashboard (Admin)</span>
-          <span style="font-size:12px; font-weight:800; color:rgba(255,255,255,.8);">Tersimpan</span>
-        </h3>
-        <div class="hint">
-          Edit teks + upload foto di sini, lalu klik <b>Simpan</b>. Perubahan akan terlihat juga untuk pengunjung publik (tanpa login).
-          <br>Catatan: bagian <b>Ringkasan Dampak + Peta Titik</b> tidak ikut diedit (otomatis dari /api/map-points).
+      <div id="adminEditPanel" class="hidden rounded-2xl border border-indigo-500/20 bg-indigo-900/10 p-6 backdrop-blur-sm reveal">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-indigo-300 font-bold flex items-center gap-2">
+            ✏️ Edit Konten Dashboard
+          </h3>
+          <span class="px-2 py-1 bg-indigo-500/20 rounded text-[10px] text-indigo-200 font-mono">AUTOSAVE: OFF</span>
         </div>
-
-        <form method="POST" action="{{ route('admin.dashboard-content.update') }}" enctype="multipart/form-data">
+        
+        <form method="POST" action="{{ route('admin.dashboard-content.update') }}" enctype="multipart/form-data" class="space-y-6">
           @csrf
-
-          <div class="grid">
-            <div>
-              <label>Judul Hero</label>
-              <input type="text" name="hero_title" value="{{ old('hero_title', $heroTitle) }}">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="text-xs font-bold text-slate-300 uppercase tracking-wide">Judul Hero</label>
+              <input type="text" name="hero_title" value="{{ old('hero_title', $heroTitle) }}" class="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-indigo-500">
             </div>
-            <div>
-              <label>Kontak (Footer)</label>
-              <input type="text" name="kontak" value="{{ old('kontak', $kontak) }}">
+            <div class="space-y-1">
+              <label class="text-xs font-bold text-slate-300 uppercase tracking-wide">Kontak (Footer)</label>
+              <input type="text" name="kontak" value="{{ old('kontak', $kontak) }}" class="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-indigo-500">
             </div>
-
-            <div style="grid-column: 1 / -1;">
-              <label>Deskripsi Hero</label>
-              <textarea name="hero_desc">{{ old('hero_desc', $heroDesc) }}</textarea>
+            <div class="md:col-span-2 space-y-1">
+              <label class="text-xs font-bold text-slate-300 uppercase tracking-wide">Deskripsi Hero</label>
+              <textarea name="hero_desc" rows="2" class="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-indigo-500">{{ old('hero_desc', $heroDesc) }}</textarea>
             </div>
-
-            <div style="grid-column: 1 / -1;">
-              <label>Tentang Program (Ringkasan)</label>
-              <textarea name="tentang_desc">{{ old('tentang_desc', $tentang) }}</textarea>
+            <div class="md:col-span-2 space-y-1">
+              <label class="text-xs font-bold text-slate-300 uppercase tracking-wide">Tentang Program</label>
+              <textarea name="tentang_desc" rows="2" class="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-indigo-500">{{ old('tentang_desc', $tentang) }}</textarea>
             </div>
           </div>
-
-          <div style="margin-top:14px; font-weight:900; color:rgba(255,255,255,.9);">Edukasi Singkat (6 kartu)</div>
-          <div class="grid" style="margin-top:10px;">
-            @for($i=0; $i<6; $i++)
-              @php
-                $t = $edukasi[$i]['title'] ?? '';
-                $b = $edukasi[$i]['body'] ?? '';
-              @endphp
-              <div>
-                <label>Judul Edukasi #{{ $i+1 }}</label>
-                <input type="text" name="edukasi_title[]" value="{{ old('edukasi_title.'.$i, $t) }}">
-              </div>
-              <div>
-                <label>Isi Edukasi #{{ $i+1 }}</label>
-                <textarea name="edukasi_body[]">{{ old('edukasi_body.'.$i, $b) }}</textarea>
-              </div>
-            @endfor
-          </div>
-
-          <div style="margin-top:14px; font-weight:900; color:rgba(255,255,255,.9);">Dokumentasi (3 kartu + upload foto)</div>
-          <div class="grid" style="margin-top:10px;">
-            @for($i=0; $i<3; $i++)
-              @php
-                $dt = $dok[$i]['title'] ?? '';
-                $db = $dok[$i]['body'] ?? '';
-                $di = $dok[$i]['image'] ?? null;
-              @endphp
-              <div>
-                <label>Judul Dokumentasi #{{ $i+1 }}</label>
-                <input type="text" name="dok_title[]" value="{{ old('dok_title.'.$i, $dt) }}">
-
-                <div style="margin-top:8px;">
-                  <label style="margin-bottom:6px;">Upload Foto #{{ $i+1 }} (opsional)</label>
-
-                  <input
-                    type="file"
-                    name="dok_image[]"
-                    accept="image/*"
-                    class="dokFileInput"
-                    data-index="{{ $i }}"
-                    style="color:rgba(255,255,255,.85); font-size:12px;"
-                  >
-
-                  <input type="hidden"
-                         name="dok_remove[{{ $i }}]"
-                         value="0"
-                         class="dokRemoveInput"
-                         data-index="{{ $i }}">
-
-                  <div class="preview-box" id="previewBox{{ $i }}">
-                    <img id="previewImg{{ $i }}" src="" alt="Preview {{ $i+1 }}">
-                  </div>
-
-                  <div class="photo-action-row">
-                    <button type="button" class="btn-remove-photo" data-index="{{ $i }}">🗑 Hapus Foto</button>
-                    <button type="button" class="btn-undo-photo" data-index="{{ $i }}">↩ Undo</button>
-                  </div>
-
-                  <div class="small-note" id="undoNote{{ $i }}" style="display:none;">
-                    Undo mengembalikan foto lama. Jika tadi sudah memilih file baru, pilih ulang file jika perlu.
-                  </div>
-
-                  @if($di)
-                    <input type="hidden" class="dokCurrentUrl" data-index="{{ $i }}" value="{{ asset(ltrim($di, '/')) }}">
-                    <div style="margin-top:6px; font-size:12px; color:rgba(255,255,255,.75);">
-                      Saat ini: <span style="font-weight:800;">sudah ada foto</span>
-                    </div>
-                  @else
-                    <input type="hidden" class="dokCurrentUrl" data-index="{{ $i }}" value="">
-                  @endif
+          
+          <div class="border-t border-white/5 my-6"></div>
+          
+          <div class="space-y-4">
+            <h4 class="text-sm font-bold text-emerald-400">Edukasi Singkat (6 Kartu)</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              @for($i=0; $i<6; $i++)
+                @php $t = $edukasi[$i]['title'] ?? ''; $b = $edukasi[$i]['body'] ?? ''; @endphp
+                <div class="p-4 bg-slate-900/30 rounded-xl border border-white/5 space-y-2">
+                  <div class="text-[10px] text-slate-500 font-mono">KARTU #{{ $i+1 }}</div>
+                  <input type="text" name="edukasi_title[]" value="{{ old('edukasi_title.'.$i, $t) }}" placeholder="Judul" class="w-full bg-slate-950/50 border border-white/10 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">
+                  <textarea name="edukasi_body[]" rows="2" placeholder="Isi..." class="w-full bg-slate-950/50 border border-white/10 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500">{{ old('edukasi_body.'.$i, $b) }}</textarea>
                 </div>
-              </div>
-              <div>
-                <label>Caption Dokumentasi #{{ $i+1 }}</label>
-                <textarea name="dok_body[]">{{ old('dok_body.'.$i, $db) }}</textarea>
-              </div>
-            @endfor
+              @endfor
+            </div>
           </div>
 
-          <div class="row">
-            <button type="submit" class="btn-save">Simpan Perubahan</button>
+          <div class="border-t border-white/5 my-6"></div>
+
+          <div class="space-y-4">
+            <h4 class="text-sm font-bold text-blue-400">Dokumentasi (3 Foto)</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              @for($i=0; $i<3; $i++)
+                @php
+                  $dt = $dok[$i]['title'] ?? '';
+                  $db = $dok[$i]['body'] ?? '';
+                  $di = $dok[$i]['image'] ?? null;
+                @endphp
+                <div class="p-4 bg-slate-900/30 rounded-xl border border-white/5 space-y-3">
+                  <div class="text-[10px] text-slate-500 font-mono">DOK #{{ $i+1 }}</div>
+                  <input type="text" name="dok_title[]" value="{{ old('dok_title.'.$i, $dt) }}" placeholder="Judul Foto" class="w-full bg-slate-950/50 border border-white/10 rounded-lg px-3 py-2 text-xs outline-none focus:border-blue-500">
+                  
+                  <div class="space-y-2">
+                    <input type="file" name="dok_image[]" accept="image/*" class="dokFileInput w-full text-[10px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:bg-slate-700 file:text-white cursor-pointer" data-index="{{ $i }}">
+                    <input type="hidden" name="dok_remove[{{ $i }}]" value="0" class="dokRemoveInput" data-index="{{ $i }}">
+                    
+                    <div id="previewBox{{ $i }}" class="hidden rounded-lg overflow-hidden border border-white/10 bg-black/20 h-32 relative">
+                      <img id="previewImg{{ $i }}" src="" class="w-full h-full object-cover">
+                    </div>
+
+                    <div class="flex gap-2">
+                      <button type="button" class="btn-remove-photo flex-1 py-1 bg-red-500/10 text-red-400 text-[10px] rounded border border-red-500/20" data-index="{{ $i }}">Hapus</button>
+                      <button type="button" class="btn-undo-photo hidden flex-1 py-1 bg-blue-500/10 text-blue-400 text-[10px] rounded border border-blue-500/20" data-index="{{ $i }}">Undo</button>
+                    </div>
+
+                    @if($di)
+                      <input type="hidden" class="dokCurrentUrl" data-index="{{ $i }}" value="{{ asset(ltrim($di, '/')) }}">
+                      <div class="text-[10px] text-emerald-400">Foto Tersimpan ✅</div>
+                    @else
+                      <input type="hidden" class="dokCurrentUrl" data-index="{{ $i }}" value="">
+                    @endif
+                  </div>
+                  <textarea name="dok_body[]" rows="2" placeholder="Caption..." class="w-full bg-slate-950/50 border border-white/10 rounded-lg px-3 py-2 text-xs outline-none focus:border-blue-500">{{ old('dok_body.'.$i, $db) }}</textarea>
+                </div>
+              @endfor
+            </div>
+          </div>
+
+          <div class="pt-4 flex justify-end">
+            <button type="submit" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5 transition-all">
+              Simpan Perubahan
+            </button>
           </div>
         </form>
       </div>
     @endif
 
-    <!-- HERO -->
-    <div class="hero" id="atas">
-      <div class="hero-grid">
-        <div>
-          <h1>{{ $heroTitle }}</h1>
-          <p>{{ $heroDesc }}</p>
-
-          <div class="badges">
-            <div class="badge">Lokasi: Desa Wiroditan</div>
-            <div class="badge">Area: Pekalongan</div>
-            <div class="badge">Mode: Publik (read-only)</div>
+    <div id="atas" class="reveal relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-gradient-to-br from-slate-900 to-slate-950">
+      <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100"></div>
+      
+      <div class="relative p-8 md:p-12 grid grid-cols-1 lg:grid-cols-5 gap-12 items-center">
+        <div class="lg:col-span-3 space-y-6">
+          <div class="space-y-2">
+            <h1 class="text-3xl md:text-5xl font-black tracking-tight text-white leading-tight">
+              {{ $heroTitle }}
+            </h1>
+            <p class="text-slate-400 text-lg leading-relaxed">
+              {{ $heroDesc }}
+            </p>
           </div>
 
-          <div class="cta-row">
-            <a class="btn btn-primary" href="#peta">Lihat Peta Titik</a>
-            <a class="btn" href="#edukasi">Baca Edukasi</a>
-          </div>
-        </div>
-
-        <div class="hero-card">
-          <h3>Tujuan Singkat</h3>
-          <ul>
-            <li>Meningkatkan pemahaman warga tentang pengelolaan sampah.</li>
-            <li>Mendorong solusi sederhana (biopori & tungku minim asap).</li>
-            <li>Menyediakan peta titik proker sebagai bukti kegiatan lapangan.</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <!-- ✅ QR CODE + SHARE -->
-    <div class="section" id="qr-share">
-      <div class="section-header">
-        <div>
-          <h2>QR Code & Share</h2>
-          <div class="sub">Struktur awal untuk akses cepat dashboard publik (pakai <b>APP_PUBLIC_URL</b>).</div>
-        </div>
-        <div class="sub"><span class="kecil">Belum untuk cetak — hanya tampilan & struktur.</span></div>
-      </div>
-
-      <div class="qr-wrap">
-        <div class="qr-box">
-          <div class="qr-canvas" aria-label="QR Code">
-            <canvas id="qrCanvas" width="320" height="320"></canvas>
+          <div class="flex flex-wrap gap-2">
+            <span class="px-3 py-1 rounded-full border border-white/10 bg-white/5 text-xs text-slate-300 backdrop-blur-md">📍 Desa Wiroditan</span>
+            <span class="px-3 py-1 rounded-full border border-white/10 bg-white/5 text-xs text-slate-300 backdrop-blur-md">🗺️ Area Pekalongan</span>
           </div>
 
-          <div class="qr-actions">
-            <button class="btn-qr primary" type="button" id="btnCopyLink">Copy Link</button>
-            <button class="btn-qr" type="button" id="btnShare">Share</button>
-          </div>
-
-          <div class="qr-note">
-            Jika tombol <b>Share</b> tidak tersedia di browser kamu, otomatis fallback ke <b>Copy Link</b>.
-          </div>
-
-          <div class="qr-toast" id="qrToast">Link berhasil disalin ✅</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- STATS -->
-    <div class="section" id="ringkasan">
-      <div class="section-header">
-        <div>
-          <h2>Ringkasan Dampak</h2>
-          <div class="sub">Angka akan otomatis terisi dari data titik proker.</div>
-        </div>
-        <div class="sub">Sumber data: <b>/api/map-points</b></div>
-      </div>
-
-      <div class="stats">
-        <div class="stat">
-          <div class="label">Total Titik Proker</div>
-          <div class="value" id="statTotal">-</div>
-          <div class="hint">Semua titik (termasuk yang belum ada koordinat).</div>
-        </div>
-        <div class="stat">
-          <div class="label">Titik Terpetakan</div>
-          <div class="value" id="statMapped">-</div>
-          <div class="hint">Titik yang punya lat/lng (muncul di peta).</div>
-        </div>
-        <div class="stat">
-          <div class="label">Biopori</div>
-          <div class="value" id="statBiopori">-</div>
-          <div class="hint">1 titik = 1 paket proker (biopori+tungku).</div>
-        </div>
-        <div class="stat">
-          <div class="label">Tungku Minim Asap</div>
-          <div class="value" id="statTungku">-</div>
-          <div class="hint">Sama jumlahnya dengan paket proker.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- MAP -->
-    <div class="section" id="peta">
-      <div class="section-header">
-        <div>
-          <h2>Peta Titik Proker</h2>
-          <div class="sub">Klik titik untuk melihat info singkat. Data bersifat publik dan tidak memuat identitas rumah/KK.</div>
-        </div>
-        <div class="sub">
-          <span class="kecil">Tips: gunakan pencarian “PROKER-0001” untuk fokus ke titik tertentu.</span>
-        </div>
-      </div>
-
-      <div class="map-wrap">
-        <div class="panel">
-          <h3>Kontrol</h3>
-
-          <div class="controls">
-            <div class="chip active" id="chipAll">Semua</div>
-            <div class="chip" id="chipActive">Status: Active</div>
-            <div class="chip" id="chipHasCoord">Punya Koordinat</div>
-          </div>
-
-          <input class="search" id="search" placeholder="Cari kode (contoh: PROKER-0007)..." />
-
-          <div class="muted" style="margin-bottom:10px;">
-            Total daftar (hasil filter): <b id="listCount">-</b>
-          </div>
-
-          <div class="list" id="list">
-            <div class="muted">Memuat titik...</div>
-          </div>
-
-          <div class="muted" style="margin-top:10px;">
-            <b>Catatan privasi:</b> Dashboard publik hanya menampilkan kode, status, dan koordinat titik proker (tanpa data privat).
+          <div class="flex flex-wrap gap-4 pt-2">
+            <a href="#peta" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all transform hover:-translate-y-1 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 00.293.707L6 18.414V5.586L3.707 3.293zM17.707 5.293L14 1.586v12.828l2.293 2.293A1 1 0 0018 16V6a1 1 0 00-.293-.707z" clip-rule="evenodd" /></svg>
+              Lihat Peta
+            </a>
+            <a href="#edukasi" class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold rounded-xl transition-all hover:border-white/20 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" /></svg>
+              Baca Edukasi
+            </a>
           </div>
         </div>
 
-        <div id="map"></div>
-      </div>
-    </div>
-
-    <!-- EDUKASI -->
-    <div class="section" id="edukasi">
-      <div class="section-header">
-        <div>
-          <h2>Edukasi Singkat</h2>
-          <div class="sub">Konten ringkas yang bisa kamu kembangkan jadi infografis / modul pelatihan warga.</div>
-        </div>
-      </div>
-
-      <div class="cards">
-        @for($i=0; $i<6; $i++)
-          @php
-            $t = $edukasi[$i]['title'] ?? '-';
-            $b = $edukasi[$i]['body'] ?? '';
-          @endphp
-          <div class="card">
-            <h3>{{ $t }}</h3>
-            <p>{{ $b }}</p>
-          </div>
-        @endfor
-      </div>
-    </div>
-
-    <!-- DOKUMENTASI -->
-    <div class="section" id="dokumentasi">
-      <div class="section-header">
-        <div>
-          <h2>Dokumentasi Kegiatan</h2>
-          <div class="sub">Admin bisa upload foto & edit caption langsung dari web.</div>
-        </div>
-      </div>
-
-      <div class="gallery">
-        @for($i=0; $i<3; $i++)
-          @php
-            $dt = $dok[$i]['title'] ?? ('FOTO '.($i+1));
-            $db = $dok[$i]['body'] ?? '';
-            $di = $dok[$i]['image'] ?? null;
-          @endphp
-          <div class="photo">
-            <div class="thumb">
-              @if($di)
-                <img src="{{ asset(ltrim($di, '/')) }}" alt="Dokumentasi {{ $i+1 }}">
-              @else
-                FOTO {{ $i+1 }}
-              @endif
+        <div class="lg:col-span-2">
+          <div class="bg-black/20 backdrop-blur-sm border border-white/10 rounded-2xl p-6 relative transform hover:rotate-1 transition-transform duration-500">
+            <div class="absolute -top-3 -right-3 w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30 animate-pulse">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" /></svg>
             </div>
-            <div class="cap">
-              <b>{{ $dt }}</b>
-              <div>{{ $db }}</div>
+            <h3 class="text-white font-bold text-lg mb-4">Tujuan Program</h3>
+            <ul class="space-y-3 text-sm text-slate-300">
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                Peningkatan pemahaman warga tentang pengelolaan sampah mandiri.
+              </li>
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                Solusi praktis melalui pembuatan biopori & tungku minim asap.
+              </li>
+              <li class="flex gap-3 items-start">
+                <svg class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                Transparansi kegiatan lapangan melalui peta digital interaktif.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="qr-share" class="reveal bg-slate-900/50 rounded-3xl border border-white/10 p-8 flex flex-col items-center justify-center text-center shadow-xl">
+      <div class="max-w-xl space-y-6">
+        <div>
+          <h2 class="text-2xl font-bold text-white mb-2">QR Code & Share</h2>
+          <p class="text-slate-400 text-sm">Scan untuk akses cepat dashboard ini di perangkat lain.</p>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl inline-block shadow-2xl">
+          <canvas id="qrCanvas" class="block w-[280px] h-[280px]"></canvas>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-3">
+          <button id="btnCopyLink" type="button" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+            Salin Link
+          </button>
+          <button id="btnShare" type="button" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
+            Share
+          </button>
+        </div>
+        
+        <div id="qrToast" class="hidden px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold rounded-lg animate-fade-in-up">
+          Link berhasil disalin! ✅
+        </div>
+      </div>
+    </div>
+
+    <div id="ringkasan" class="reveal space-y-4">
+      <div class="flex items-end justify-between px-2">
+        <div>
+          <h2 class="text-xl font-bold text-white">Ringkasan Dampak</h2>
+          <p class="text-xs text-slate-400 mt-1">Update realtime dari database</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-slate-900/50 border border-white/5 rounded-2xl p-5 hover:bg-slate-800/50 transition-colors group">
+          <div class="text-xs text-slate-400 font-medium uppercase tracking-wide mb-1">Total Titik</div>
+          <div class="text-3xl font-black text-white group-hover:text-emerald-400 transition-colors" id="statTotal">-</div>
+          <div class="text-[10px] text-slate-500 mt-2">Semua data masuk</div>
+        </div>
+        <div class="bg-slate-900/50 border border-white/5 rounded-2xl p-5 hover:bg-slate-800/50 transition-colors group">
+          <div class="text-xs text-emerald-400 font-medium uppercase tracking-wide mb-1">Terpetakan</div>
+          <div class="text-3xl font-black text-white group-hover:text-emerald-400 transition-colors" id="statMapped">-</div>
+          <div class="text-[10px] text-slate-500 mt-2">Muncul di peta</div>
+        </div>
+        <div class="bg-slate-900/50 border border-white/5 rounded-2xl p-5 hover:bg-slate-800/50 transition-colors group">
+          <div class="text-xs text-blue-400 font-medium uppercase tracking-wide mb-1">Biopori</div>
+          <div class="text-3xl font-black text-white group-hover:text-blue-400 transition-colors" id="statBiopori">-</div>
+          <div class="text-[10px] text-slate-500 mt-2">Lubang resapan</div>
+        </div>
+        <div class="bg-slate-900/50 border border-white/5 rounded-2xl p-5 hover:bg-slate-800/50 transition-colors group">
+          <div class="text-xs text-orange-400 font-medium uppercase tracking-wide mb-1">Tungku</div>
+          <div class="text-3xl font-black text-white group-hover:text-orange-400 transition-colors" id="statTungku">-</div>
+          <div class="text-[10px] text-slate-500 mt-2">Minim asap</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="peta" class="reveal bg-slate-900/50 border border-white/10 rounded-3xl p-1 shadow-2xl">
+      <div class="p-6 pb-2 md:flex justify-between items-end mb-4">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            Peta Sebaran
+          </h2>
+          <p class="text-sm text-slate-400 mt-1 max-w-2xl">
+            Klik titik untuk melihat detail. Data ini bersifat publik namun tidak menampilkan informasi sensitif (nama KK/privasi warga).
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-1 p-1">
+        <div class="bg-slate-950/50 rounded-2xl border border-white/5 p-4 flex flex-col h-[500px]">
+          <div class="mb-4 space-y-3">
+            <div class="relative">
+              <input id="search" type="text" placeholder="Cari Kode (PROKER-...)" class="w-full bg-black/30 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-emerald-500 outline-none">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-3 top-2.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
+            <div class="flex justify-between text-[10px] text-slate-500 px-1">
+              <span>Hasil Filter:</span>
+              <span id="listCount" class="font-mono text-white">0</span>
             </div>
           </div>
-        @endfor
+          <div id="list" class="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+            <div class="text-center py-8 text-xs text-slate-500 italic">Memuat data...</div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-3 h-[500px] rounded-2xl overflow-hidden border border-white/10 relative z-0">
+          <div id="map" class="w-full h-full bg-slate-900"></div>
+        </div>
       </div>
     </div>
 
-    <!-- FAQ -->
-    <div class="section" id="faq">
-      <div class="section-header">
-        <div>
-          <h2>FAQ</h2>
-          <div class="sub">Pertanyaan umum agar publik paham konteks dashboard.</div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 reveal">
+      
+      <div id="edukasi" class="space-y-4">
+        <div class="flex items-center gap-2">
+          <div class="p-2 bg-indigo-500/10 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+          </div>
+          <h2 class="text-xl font-bold text-white">Edukasi Singkat</h2>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          @for($i=0; $i<6; $i++)
+            @php 
+                $t = $edukasi[$i]['title'] ?? 'Tips #'.($i+1); 
+                $b = $edukasi[$i]['body'] ?? 'Konten belum tersedia.';
+                $preview = strlen($b) > 100 ? substr($b, 0, 100) . '...' : $b;
+            @endphp
+            
+            {{-- UBAH DIV MENJADI A (LINK) --}}
+            <a href="{{ route('public.detail', ['type' => 'edukasi', 'index' => $i]) }}" 
+               class="block bg-slate-900/50 border border-white/5 rounded-xl p-4 hover:border-indigo-500/50 hover:bg-slate-800/80 transition-all group relative overflow-hidden">
+              
+              {{-- Efek Glow saat hover --}}
+              <div class="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+              <div class="relative z-10">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="text-sm font-bold text-indigo-300 group-hover:text-indigo-200 transition-colors">{{ $t }}</h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600 group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors">
+                    {{ $preview }}
+                </p>
+              </div>
+            </a>
+          @endfor
         </div>
       </div>
 
-      <details>
-        <summary>Dashboard ini menampilkan apa?</summary>
-        <p>Dashboard menampilkan ringkasan program dan peta titik proker (biopori + tungku minim asap) sebagai dokumentasi kegiatan.</p>
-      </details>
-      <details>
-        <summary>Apakah titik di peta menunjukkan rumah warga?</summary>
-        <p>Tidak. Dashboard publik hanya menampilkan titik proker untuk kebutuhan pemantauan program, tanpa memuat identitas KK atau alamat detail.</p>
-      </details>
-      <details>
-        <summary>Kenapa ada titik yang tidak muncul di peta?</summary>
-        <p>Titik yang belum memiliki koordinat (lat/lng kosong) tidak ditampilkan di peta. Namun tetap dihitung di “Total Titik Proker”.</p>
-      </details>
-      <details>
-        <summary>Siapa yang bisa mengedit titik?</summary>
-        <p>Hanya admin yang memiliki akses edit. Publik hanya bisa melihat (read-only).</p>
-      </details>
-    </div>
+      <div id="dokumentasi" class="space-y-4">
+        <div class="flex items-center gap-2">
+          <div class="p-2 bg-pink-500/10 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+          </div>
+          <h2 class="text-xl font-bold text-white">Dokumentasi</h2>
+        </div>
+        <div class="space-y-3">
+          @for($i=0; $i<3; $i++)
+            @php
+              $dt = $dok[$i]['title'] ?? ('Foto Kegiatan '.($i+1));
+              $db = $dok[$i]['body'] ?? 'Deskripsi kegiatan...';
+              $di = $dok[$i]['image'] ?? null;
+              $preview = strlen($db) > 120 ? substr($db, 0, 120) . '...' : $db;
+            @endphp
 
-    <!-- TENTANG -->
-    <div class="section" id="tentang">
-      <div class="section-header">
-        <div>
-          <h2>Tentang Program</h2>
-          <div class="sub">Informasi singkat untuk keperluan laporan, presentasi, dan transparansi.</div>
+            {{-- UBAH DIV MENJADI A (LINK) --}}
+            <a href="{{ route('public.detail', ['type' => 'dokumentasi', 'index' => $i]) }}" 
+               class="flex gap-4 bg-slate-900/50 border border-white/5 rounded-xl p-3 overflow-hidden hover:bg-slate-800/80 hover:border-pink-500/30 transition-all group">
+              
+              {{-- Gambar Thumbnail --}}
+              <div class="w-24 h-24 sm:w-32 sm:h-24 shrink-0 rounded-lg bg-slate-800 flex items-center justify-center overflow-hidden border border-white/5 relative">
+                @if($di)
+                  <img src="{{ asset(ltrim($di, '/')) }}" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
+                @else
+                  <span class="text-[10px] text-slate-600 font-bold">NO IMG</span>
+                @endif
+                
+                {{-- Overlay Icon Mata --}}
+                <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                </div>
+              </div>
+
+              {{-- Text Content --}}
+              <div class="flex-1 py-1 flex flex-col justify-center">
+                <h4 class="text-sm font-bold text-white mb-1 group-hover:text-pink-300 transition-colors">{{ $dt }}</h4>
+                <p class="text-xs text-slate-400 leading-relaxed line-clamp-2 group-hover:text-slate-300">{{ $preview }}</p>
+                <div class="mt-2 text-[10px] text-emerald-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0 duration-300">
+                    Baca Selengkapnya &rarr;
+                </div>
+              </div>
+            </a>
+          @endfor
         </div>
       </div>
+    </div>
 
-      <div class="card" style="margin-bottom:12px;">
-        <h3>Ringkasan</h3>
-        <p>{{ $tentang }}</p>
-      </div>
-
-      <div class="footer">
-        <div><b>Tim KKN</b> • Desa Wiroditan • Pekalongan</div>
-        <div class="kecil">Kontak resmi: {{ $kontak }}</div>
+    <div id="faq" class="reveal max-w-3xl mx-auto space-y-4 pt-8 border-t border-white/5">
+      <h2 class="text-center text-xl font-bold text-white mb-6">Pertanyaan Umum (FAQ)</h2>
+      <div class="space-y-2">
+        <details class="group bg-slate-900/50 border border-white/5 rounded-xl open:border-emerald-500/30 transition-all">
+          <summary class="flex items-center justify-between p-4 cursor-pointer font-medium text-sm text-slate-200 list-none">
+            <span>Apa fungsi dashboard ini?</span>
+            <span class="transition group-open:rotate-180">
+              <svg fill="none" height="20" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="20"><path d="M6 9l6 6 6-6"></path></svg>
+            </span>
+          </summary>
+          <div class="text-xs text-slate-400 px-4 pb-4 leading-relaxed">
+            Sebagai media transparansi dan dokumentasi digital untuk program KKN, mencakup peta sebaran titik proker dan materi edukasi.
+          </div>
+        </details>
+        <details class="group bg-slate-900/50 border border-white/5 rounded-xl open:border-emerald-500/30 transition-all">
+          <summary class="flex items-center justify-between p-4 cursor-pointer font-medium text-sm text-slate-200 list-none">
+            <span>Apakah data warga ditampilkan?</span>
+            <span class="transition group-open:rotate-180">
+              <svg fill="none" height="20" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="20"><path d="M6 9l6 6 6-6"></path></svg>
+            </span>
+          </summary>
+          <div class="text-xs text-slate-400 px-4 pb-4 leading-relaxed">
+            Tidak. Kami sangat menjaga privasi. Titik di peta hanya menunjukkan lokasi alat (biopori/tungku) tanpa menyertakan nama KK atau data sensitif lainnya.
+          </div>
+        </details>
       </div>
     </div>
-  </div>
 
-<script>
-  // Toggle panel edit
-  (function(){
-    const btn = document.getElementById("toggleEditBtn");
-    const panel = document.getElementById("adminEditPanel");
-    if (!btn || !panel) return;
+    <footer class="border-t border-white/5 pt-8 pb-12 text-center space-y-2">
+      <div class="font-bold text-white text-sm">Tim KKN • Desa Wiroditan • Pekalongan</div>
+      <div class="text-xs text-slate-500">{{ $kontak }}</div>
+      <div class="text-[10px] text-slate-700 mt-4">© {{ date('Y') }} Pendampingan Sampah. Built with Laravel.</div>
+    </footer>
 
-    const KEY = "ps_admin_edit_open";
-    function setState(open){
-      panel.style.display = open ? "block" : "none";
-      btn.textContent = open ? "Mode Edit: ON" : "Mode Edit: OFF";
-      localStorage.setItem(KEY, open ? "1" : "0");
+  </main>
+
+  <script>
+    // 1. Scroll Reveal Animation
+    document.addEventListener('DOMContentLoaded', () => {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('active');
+          }
+        });
+      }, { threshold: 0.1 });
+
+      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    });
+
+    // 2. Logic Toggle Admin Edit
+    const toggleBtn = document.getElementById("toggleEditBtn");
+    const editPanel = document.getElementById("adminEditPanel");
+    if(toggleBtn && editPanel) {
+      toggleBtn.addEventListener('click', () => {
+        editPanel.classList.toggle('hidden');
+        toggleBtn.textContent = editPanel.classList.contains('hidden') ? 'Mode Edit: OFF' : 'Tutup Edit';
+        toggleBtn.classList.toggle('bg-indigo-500');
+        toggleBtn.classList.toggle('text-white');
+      });
     }
 
-    const saved = localStorage.getItem(KEY);
-    setState(saved === "1");
-
-    btn.addEventListener("click", () => {
-      const isOpen = panel.style.display !== "none";
-      setState(!isOpen);
+    // 3. Preview Image Logic
+    document.querySelectorAll('.dokFileInput').forEach(input => {
+      input.addEventListener('change', function() {
+        const idx = this.dataset.index;
+        const file = this.files[0];
+        const previewBox = document.getElementById('previewBox' + idx);
+        const previewImg = document.getElementById('previewImg' + idx);
+        
+        if (file) {
+          previewImg.src = URL.createObjectURL(file);
+          previewBox.classList.remove('hidden');
+          document.querySelector(`.dokRemoveInput[data-index="${idx}"]`).value = "0";
+        }
+      });
     });
-  })();
-</script>
 
-<script>
-  // Preview + Hapus + Undo
-  (function(){
-    const fileInputs = document.querySelectorAll(".dokFileInput");
-    const currentUrls = document.querySelectorAll(".dokCurrentUrl");
-    const removeButtons = document.querySelectorAll(".btn-remove-photo");
-    const undoButtons = document.querySelectorAll(".btn-undo-photo");
+    document.querySelectorAll('.btn-remove-photo').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const idx = this.dataset.index;
+        document.getElementById('previewBox' + idx).classList.add('hidden');
+        this.classList.add('hidden');
+        document.querySelector(`.btn-undo-photo[data-index="${idx}"]`).classList.remove('hidden');
+        document.querySelector(`.dokRemoveInput[data-index="${idx}"]`).value = "1";
+        document.querySelector(`.dokFileInput[data-index="${idx}"]`).value = ""; 
+      });
+    });
 
-    const prevState = {};
+    document.querySelectorAll('.btn-undo-photo').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const idx = this.dataset.index;
+        const currentUrl = document.querySelector(`.dokCurrentUrl[data-index="${idx}"]`).value;
+        if(currentUrl) {
+          document.getElementById('previewImg' + idx).src = currentUrl;
+          document.getElementById('previewBox' + idx).classList.remove('hidden');
+        }
+        this.classList.add('hidden');
+        document.querySelector(`.btn-remove-photo[data-index="${idx}"]`).classList.remove('hidden');
+        document.querySelector(`.dokRemoveInput[data-index="${idx}"]`).value = "0";
+      });
+    });
 
-    function showPreview(index, src){
-      const box = document.getElementById("previewBox" + index);
-      const img = document.getElementById("previewImg" + index);
-      if (!box || !img) return;
-
-      if (!src){
-        img.src = "";
-        box.style.display = "none";
-        return;
+    // 4. Init Previews
+    document.querySelectorAll('.dokCurrentUrl').forEach(el => {
+      if(el.value) {
+        const idx = el.dataset.index;
+        document.getElementById('previewImg' + idx).src = el.value;
+        document.getElementById('previewBox' + idx).classList.remove('hidden');
       }
-      img.src = src;
-      box.style.display = "block";
-    }
-
-    function setRemove(index, isRemove){
-      const ri = document.querySelector('.dokRemoveInput[data-index="'+index+'"]');
-      if (ri) ri.value = isRemove ? "1" : "0";
-    }
-
-    function setUndoVisible(index, visible){
-      const ub = document.querySelector('.btn-undo-photo[data-index="'+index+'"]');
-      const note = document.getElementById('undoNote'+index);
-      if (ub) ub.style.display = visible ? "inline-flex" : "none";
-      if (note) note.style.display = visible ? "block" : "none";
-    }
-
-    currentUrls.forEach(el => {
-      const idx = el.dataset.index;
-      const url = el.value || "";
-      if (url) showPreview(idx, url);
     });
+  </script>
 
-    fileInputs.forEach(input => {
-      input.addEventListener("change", () => {
-        const idx = input.dataset.index;
-        const file = input.files && input.files[0] ? input.files[0] : null;
+  <script type="application/json" id="psShareUrlJson">@json($shareUrl)</script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
-        setRemove(idx, false);
-        setUndoVisible(idx, false);
+  <script>
+    (function(){
+      // Fallback Logic: Jika textContent kosong/error, gunakan URL browser
+      let shareUrl = "";
+      try {
+        const raw = document.getElementById("psShareUrlJson").textContent;
+        shareUrl = JSON.parse(raw);
+      } catch(e) {}
+      if(!shareUrl) shareUrl = window.location.href;
 
-        if (!file){
-          const cur = document.querySelector('.dokCurrentUrl[data-index="'+idx+'"]');
-          showPreview(idx, cur ? (cur.value || "") : "");
-          return;
-        }
-
-        showPreview(idx, URL.createObjectURL(file));
-      });
-    });
-
-    removeButtons.forEach(btn => {
-      btn.addEventListener("click", () => {
-        const idx = btn.dataset.index;
-
-        const box = document.getElementById("previewBox" + idx);
-        const img = document.getElementById("previewImg" + idx);
-        const currentPreview = (box && box.style.display !== "none" && img) ? (img.src || "") : "";
-        prevState[idx] = { previewSrc: currentPreview, hadPreview: !!currentPreview };
-
-        setRemove(idx, true);
-        const fi = document.querySelector('.dokFileInput[data-index="'+idx+'"]');
-        if (fi) fi.value = "";
-
-        showPreview(idx, "");
-        setUndoVisible(idx, true);
-      });
-    });
-
-    undoButtons.forEach(btn => {
-      btn.addEventListener("click", () => {
-        const idx = btn.dataset.index;
-        setRemove(idx, false);
-
-        const state = prevState[idx] || null;
-        if (state && state.hadPreview && state.previewSrc) {
-          showPreview(idx, state.previewSrc);
+      const canvas = document.getElementById("qrCanvas");
+      
+      function generateClientSideQR() {
+        if(window.QRCode && canvas) {
+          QRCode.toCanvas(canvas, shareUrl, { 
+            width: 280, 
+            margin: 2,
+            color: { dark: '#0f172a', light: '#ffffff' }
+          }, function(error){
+            if(error) {
+              console.warn("Client QR Failed, switching to API");
+              useApiFallback();
+            }
+          });
         } else {
-          const cur = document.querySelector('.dokCurrentUrl[data-index="'+idx+'"]');
-          showPreview(idx, cur ? (cur.value || "") : "");
+          setTimeout(() => {
+            if(window.QRCode) generateClientSideQR();
+            else useApiFallback();
+          }, 1000);
         }
+      }
 
-        setUndoVisible(idx, false);
-      });
-    });
-  })();
-</script>
+      function useApiFallback() {
+        const img = document.createElement("img");
+        img.src = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(shareUrl)}`;
+        img.className = "block w-[280px] h-[280px]";
+        canvas.replaceWith(img);
+      }
 
-<!-- ✅ QR generator lib (client-side) -->
-<script type="application/json" id="psShareUrlJson">@json($shareUrl)</script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+      generateClientSideQR();
 
-<script>
-  // ✅ QR Code + Copy + Share
-  (function(){
-    const shareUrl = JSON.parse(document.getElementById("psShareUrlJson").textContent || '""');
+      const btnCopy = document.getElementById("btnCopyLink");
+      const btnShare = document.getElementById("btnShare");
+      const toast = document.getElementById("qrToast");
 
-    const canvas = document.getElementById("qrCanvas");
-    const btnCopy = document.getElementById("btnCopyLink");
-    const btnShare = document.getElementById("btnShare");
-    const toast = document.getElementById("qrToast");
-
-    function showToast(msg){
-      if (!toast) return;
-      toast.textContent = msg || "OK";
-      toast.style.display = "block";
-      clearTimeout(showToast._t);
-      showToast._t = setTimeout(() => toast.style.display = "none", 1400);
-    }
-
-    async function copyToClipboard(text){
-      try{
-        await navigator.clipboard.writeText(text);
-        showToast("Link berhasil disalin ✅");
-        return true;
-      }catch(e){
-        try{
+      async function copyText() {
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          showToast();
+        } catch(err) {
           const ta = document.createElement("textarea");
-          ta.value = text;
-          ta.style.position = "fixed";
-          ta.style.left = "-9999px";
+          ta.value = shareUrl;
           document.body.appendChild(ta);
           ta.select();
           document.execCommand("copy");
           document.body.removeChild(ta);
-          showToast("Link berhasil disalin ✅");
-          return true;
-        }catch(err){
-          showToast("Gagal menyalin ❌");
-          return false;
+          showToast();
         }
       }
-    }
 
-    try{
-      if (window.QRCode && canvas){
-        QRCode.toCanvas(canvas, shareUrl, {
-          errorCorrectionLevel: "M",
-          margin: 1,
-          width: 320
-        }, function (err) {
-          if (err) {
-            console.error(err);
-            showToast("QR gagal dibuat ❌");
+      function showToast() {
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 2000);
+      }
+
+      if(btnCopy) btnCopy.addEventListener('click', copyText);
+      if(btnShare) {
+        btnShare.addEventListener('click', async () => {
+          if(navigator.share) {
+            try { await navigator.share({ title: 'Dashboard Pendampingan', url: shareUrl }); } catch(e) {}
+          } else {
+            copyText();
           }
         });
       }
-    }catch(e){
-      console.error(e);
-      showToast("QR gagal dibuat ❌");
+    })();
+  </script>
+
+  <script>
+    const WIRODITAN = { lat: -6.954838942297599, lng: 109.60949282629723 };
+    const map = L.map("map", { zoomControl: false }).setView([WIRODITAN.lat, WIRODITAN.lng], 15);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+    L.control.zoom({ position: "topright" }).addTo(map);
+
+    const layer = L.layerGroup().addTo(map);
+    const markerBySeq = new Map();
+    let allPoints = [];
+    let filterMode = "all";
+
+    const iconBlue = new L.Icon({
+      iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png",
+      shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+      iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+    });
+
+    fetch("/api/map-points", { headers: { "Accept": "application/json" } })
+      .then(res => res.json())
+      .then(data => {
+        allPoints = (data.points || []).map(p => ({
+          ...p, lat: p.lat ? Number(p.lat) : null, lng: p.lng ? Number(p.lng) : null
+        }));
+        updateStats();
+        renderList();
+      })
+      .catch(err => console.error("Gagal load map:", err));
+
+    function updateStats() {
+      const total = allPoints.length;
+      const mapped = allPoints.filter(p => p.lat && p.lng).length;
+      document.getElementById("statTotal").innerText = total;
+      document.getElementById("statMapped").innerText = mapped;
+      document.getElementById("statBiopori").innerText = total;
+      document.getElementById("statTungku").innerText = total;
     }
 
-    if (btnCopy){
-      btnCopy.addEventListener("click", () => copyToClipboard(shareUrl));
+    const chips = {
+      all: document.getElementById("chipAll"),
+      active: document.getElementById("chipActive"),
+      hasCoord: document.getElementById("chipHasCoord")
+    };
+
+    function setChip(mode) {
+      filterMode = mode;
+      Object.values(chips).forEach(btn => btn.className = "flex-1 py-1.5 rounded-lg border border-white/10 bg-white/5 text-slate-400 transition-all hover:bg-white/10");
+      chips[mode].className = "flex-1 py-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 transition-all shadow-sm";
+      renderList();
     }
 
-    if (btnShare){
-      btnShare.addEventListener("click", async () => {
-        if (navigator.share){
-          try{
-            await navigator.share({
-              title: "Dashboard Pendampingan Sampah",
-              text: "Akses dashboard publik Pendampingan Sampah:",
-              url: shareUrl
-            });
-          }catch(e){
-            await copyToClipboard(shareUrl);
-          }
-        } else {
-          await copyToClipboard(shareUrl);
+    chips.all.onclick = () => setChip('all');
+    chips.active.onclick = () => setChip('active');
+    chips.hasCoord.onclick = () => setChip('hasCoord');
+    
+    document.getElementById("search").addEventListener("input", renderList);
+
+    function renderList() {
+      layer.clearLayers();
+      const q = document.getElementById("search").value.toLowerCase();
+      const listEl = document.getElementById("list");
+      listEl.innerHTML = "";
+
+      const filtered = allPoints.filter(p => {
+        if(filterMode === 'active' && p.status !== 'active') return false;
+        if(filterMode === 'hasCoord' && (!p.lat || !p.lng)) return false;
+        if(q && !p.pair_code.toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      document.getElementById("listCount").innerText = filtered.length;
+
+      if(filtered.length === 0) {
+        listEl.innerHTML = `<div class="text-center py-4 text-xs text-slate-500">Tidak ada data.</div>`;
+        return;
+      }
+
+      filtered.forEach(p => {
+        if(p.lat && p.lng) {
+          const m = L.marker([p.lat, p.lng], { icon: iconBlue }).addTo(layer);
+          m.bindPopup(`
+            <div class="font-sans text-center">
+              <b class="text-emerald-400 text-sm">${p.pair_code}</b><br>
+              <span class="text-[10px] bg-white/10 px-1 rounded text-slate-300">Status: ${p.status}</span>
+              ${p.note ? `<p class="text-xs mt-1 text-slate-400">"${p.note}"</p>` : ''}
+              <a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" class="block mt-2 text-[10px] text-blue-400 underline hover:text-blue-300">Buka Google Maps &rarr;</a>
+            </div>
+          `);
+          markerBySeq.set(p.seq, m);
+        
+          const item = document.createElement("div");
+          item.className = "p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl cursor-pointer transition-colors group";
+          item.innerHTML = `
+            <div class="flex justify-between items-start">
+              <div class="font-bold text-xs text-emerald-400 group-hover:text-emerald-300 transition-colors">${p.pair_code}</div>
+              <div class="text-[10px] text-slate-500 font-mono">${p.status}</div>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1 truncate">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</div>
+          `;
+          item.onclick = () => {
+            map.setView([p.lat, p.lng], 17);
+            const m = markerBySeq.get(p.seq);
+            if(m) m.openPopup();
+          };
+          listEl.appendChild(item);
         }
       });
     }
-  })();
-</script>
-
-<script>
-  // ===== PETA (kode kamu, tidak diubah) =====
-  const WIRODITAN = { lat: -6.954838942297599, lng: 109.60949282629723 };
-  const PEKALONGAN_BOUNDS = L.latLngBounds([-7.15, 109.40], [-6.75, 110.00]);
-
-  const shadowUrl = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png";
-  const iconBlue = new L.Icon({
-    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png",
-    shadowUrl: shadowUrl,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
-  });
-
-  async function apiGet(url){
-    const res = await fetch(url, { headers: { "Accept": "application/json" }});
-    const ct = (res.headers.get("content-type") || "").toLowerCase();
-    const data = ct.includes("application/json") ? await res.json() : await res.text();
-    if (!res.ok) throw data;
-    return data;
-  }
-
-  function esc(s){
-    return String(s ?? "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll("\"","&quot;")
-      .replaceAll("'","&#039;");
-  }
-
-  function googleMapsUrl(lat, lng){
-    const la = Number(lat);
-    const ln = Number(lng);
-    if (!Number.isFinite(la) || !Number.isFinite(ln)) return null;
-    return `https://www.google.com/maps?q=${la},${ln}`;
-  }
-
-  const map = L.map("map", {
-    center: [WIRODITAN.lat, WIRODITAN.lng],
-    zoom: 15,
-    minZoom: 12,
-    maxZoom: 18,
-    maxBounds: PEKALONGAN_BOUNDS,
-    maxBoundsViscosity: 1.0,
-    zoomControl: false,
-  });
-
-  L.control.zoom({ position: "topright" }).addTo(map);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
-  map.fitBounds(PEKALONGAN_BOUNDS);
-
-  const layer = L.layerGroup().addTo(map);
-  const markerBySeq = new Map();
-
-  let allPoints = [];
-  let filterMode = "all";
-  const chipAll = document.getElementById("chipAll");
-  const chipActive = document.getElementById("chipActive");
-  const chipHasCoord = document.getElementById("chipHasCoord");
-  const searchEl = document.getElementById("search");
-  const listEl = document.getElementById("list");
-  const listCountEl = document.getElementById("listCount");
-
-  function setActiveChip(mode){
-    filterMode = mode;
-    [chipAll, chipActive, chipHasCoord].forEach(c => c.classList.remove("active"));
-    if (mode === "all") chipAll.classList.add("active");
-    if (mode === "active") chipActive.classList.add("active");
-    if (mode === "hasCoord") chipHasCoord.classList.add("active");
-    render();
-  }
-
-  chipAll.addEventListener("click", () => setActiveChip("all"));
-  chipActive.addEventListener("click", () => setActiveChip("active"));
-  chipHasCoord.addEventListener("click", () => setActiveChip("hasCoord"));
-  searchEl.addEventListener("input", () => render());
-
-  function applyFilter(points){
-    const q = (searchEl.value || "").trim().toLowerCase();
-    return points.filter(p => {
-      if (filterMode === "active" && String(p.status || "").toLowerCase() !== "active") return false;
-      if (filterMode === "hasCoord" && (p.lat === null || p.lng === null)) return false;
-      if (!q) return true;
-      const code = String(p.pair_code || "").toLowerCase();
-      const note = String(p.note || "").toLowerCase();
-      return code.includes(q) || note.includes(q);
-    });
-  }
-
-  function render(){
-    layer.clearLayers();
-    markerBySeq.clear();
-
-    const filtered = applyFilter(allPoints);
-    listCountEl.textContent = filtered.length;
-
-    const listVisible = filtered.filter(p => p.lat !== null && p.lng !== null);
-
-    if (!filtered.length){
-      listEl.innerHTML = '<div class="muted">Tidak ada titik yang cocok dengan filter.</div>';
-      return;
-    }
-
-    filtered.forEach(p => {
-      if (p.lat === null || p.lng === null) return;
-
-      const m = L.marker([p.lat, p.lng], { icon: iconBlue }).addTo(layer);
-
-      const code = esc(p.pair_code || ("#" + p.seq));
-      const status = esc(p.status || "-");
-      const note = esc(p.note || "");
-
-      const gUrl = googleMapsUrl(p.lat, p.lng);
-      const gBtn = gUrl ? `<a class="gmaps-btn" href="${gUrl}" target="_blank" rel="noopener noreferrer">📍 Lihat di Google Maps</a>` : ``;
-
-      m.bindPopup(
-        `<div style="font-family:Arial; font-size:13px;">
-          <b>${code}</b><br>
-          <div style="opacity:.85; margin-top:4px;">Status: <b>${status}</b></div>
-          ${note ? `<div style="opacity:.85; margin-top:4px;">Catatan: ${note}</div>` : ``}
-          ${gBtn}
-        </div>`
-      );
-
-      markerBySeq.set(p.seq, m);
-    });
-
-    listEl.innerHTML = "";
-    if (!listVisible.length){
-      listEl.innerHTML = '<div class="muted">Ada data titik, tapi belum ada yang memiliki koordinat.</div>';
-      return;
-    }
-
-    listVisible.forEach(p => {
-      const div = document.createElement("div");
-      div.className = "item";
-
-      const code = p.pair_code || ("#" + p.seq);
-      const meta = `LatLng: ${Number(p.lat).toFixed(6)}, ${Number(p.lng).toFixed(6)} • Status: ${p.status || "-"}`;
-
-      div.innerHTML = `<b>${esc(code)}</b><div class="meta">${esc(meta)}</div>`;
-
-      div.addEventListener("click", () => {
-        map.setView([p.lat, p.lng], 17);
-        const m = markerBySeq.get(p.seq);
-        if (m) m.openPopup();
-      });
-
-      listEl.appendChild(div);
-    });
-  }
-
-  async function loadPoints(){
-    const res = await apiGet("/api/map-points");
-    allPoints = (res.points || []).map(p => ({
-      ...p,
-      lat: p.lat !== null ? Number(p.lat) : null,
-      lng: p.lng !== null ? Number(p.lng) : null,
-    }));
-
-    const total = allPoints.length;
-    const mapped = allPoints.filter(p => p.lat !== null && p.lng !== null).length;
-
-    document.getElementById("statTotal").textContent = total;
-    document.getElementById("statMapped").textContent = mapped;
-    document.getElementById("statBiopori").textContent = total;
-    document.getElementById("statTungku").textContent = total;
-
-    render();
-  }
-
-  loadPoints().catch(err => {
-    console.error(err);
-    document.getElementById("statTotal").textContent = "!";
-    document.getElementById("statMapped").textContent = "!";
-    document.getElementById("statBiopori").textContent = "!";
-    document.getElementById("statTungku").textContent = "!";
-    listEl.innerHTML = '<div class="muted">Gagal memuat data peta. Cek server & route /api/map-points.</div>';
-  });
-</script>
-
+  </script>
 </body>
 </html>

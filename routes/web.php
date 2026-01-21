@@ -47,3 +47,37 @@ Route::prefix('api')->middleware(['web'])->group(function () {
         Route::patch('admin/clear-all-points', [MapPointController::class, 'clearAllPoints']);
     });
 });
+
+// ROUTE HALAMAN DETAIL (Edukasi & Dokumentasi)
+Route::get('/detail/{type}/{index}', function ($type, $index) {
+    // 1. Ambil data konten
+    $content = DashboardContent::first();
+    
+    // 2. Tentukan array mana yang diambil
+    $items = [];
+    $category = '';
+    
+    if ($type === 'edukasi') {
+        $items = $content->edukasi_cards ?? [];
+        $category = 'Edukasi Singkat';
+    } elseif ($type === 'dokumentasi') {
+        $items = $content->dokumentasi_cards ?? [];
+        $category = 'Dokumentasi Kegiatan';
+    } else {
+        abort(404);
+    }
+
+    // 3. Cek apakah index ada
+    if (!isset($items[$index])) {
+        abort(404);
+    }
+
+    $item = $items[$index];
+
+    // 4. Tampilkan View Detail
+    return view('public.detail', [
+        'item' => $item,
+        'category' => $category,
+        'type' => $type
+    ]);
+})->name('public.detail');
